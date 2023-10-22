@@ -43,17 +43,6 @@ The response should include the entire review record with the newly patched cont
 }
 ```
 
-**Hint:** Since the test requires a PUT method, you can update the review in the following manner:
-
-```js
-  const updatedReview = {
-    ...response.locals.review,
-    ...request.body.data,
-    review_id: response.locals.review.review_id,
-  };
-  const data = await service.update(updatedReview);
-```
-
 ### UPDATE /reviews/:reviewId (incorrect ID)
 
 If the given ID does not match an existing review, a response like the following should be returned:

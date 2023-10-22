@@ -1,56 +1,64 @@
-const moviesService = require("./movies.service");
+const service = require("./movies.service");
 const asyncErrorBoundary = require("../errors/asyncErrorBoundary");
 
 async function list(req, res) {
-  const is_showing = req.query.is_showing;
-  let data = [];
+  const { is_showing } = req.query;
+ 
   if (is_showing) {
-    data = await moviesService.isShowing();
+    res.status(200).json({data: await service.listIsShowing()}  )
   } else {
-    data = await moviesService.list();
+    res.status(200).json( {data: await service.list() })
   }
-  res.json({ data });
 }
 
-async function movieExists(req, res, next) {
-  const movie = await moviesService.read(req.params.movieId);
+async function movieIdExist(req, res, next) {
+  const { movieId } = req.params;
+  const movie = await service.read(movieId);
+ 
   if (movie) {
     res.locals.movie = movie;
-    return next();
+  return next();
   }
-  next({
+    next({
     status: 404,
-    message: "Movie cannot be found.",
+    message: `Movie cannot be found.`,
   });
 }
 
-async function movieInTheaters(req, res) {
-  const { movieId } = req.params;
-  const data = await moviesService.movieInTheaters(movieId);
-  res.json({ data });
+async function read(req, res, next) {
+  const { movie } = res.locals;
+  res.json({ data: movie });
 }
 
-function read(req, res, next) {
-  const data = res.locals.movie;
-  res.json({ data });
+async function getTheaters(req, res){
+  const { movieId } = req.params
+  
+  const result = await service.getTheaters(movieId)
+  
+  res.json({ data:result })
 }
 
-async function movieReviews(req, res) {
-  const { movieId } = req.params;
-  const allReviews = await moviesService.movieReviews(movieId);
-  const data = Object.values(allReviews);
-  res.json({ data });
+async function getReviews(req, res) {
+  const { movieId } = req.params
+  const reviews = await service.getMovieReviews(movieId);
+  const allReviews = [];
+  for(let i = 0; i < reviews.length; i++) {
+    const review = reviews[i];
+    const critic = await service.getCritic(review.critic_id);
+    review.critic = critic[0]
+    allReviews.push(review)
+    
+  }
+
+  res.status(200).json({data: allReviews})
 }
+
+
 
 module.exports = {
-  list: asyncErrorBoundary(list),
-  read: [asyncErrorBoundary(movieExists), asyncErrorBoundary(read)],
-  movieInTheaters: [
-    asyncErrorBoundary(movieExists),
-    asyncErrorBoundary(movieInTheaters),
-  ],
-  movieReviews: [
-    asyncErrorBoundary(movieExists),
-    asyncErrorBoundary(movieReviews),
-  ],
+  list: [asyncErrorBoundary(list)],
+  read: [asyncErrorBoundary(movieIdExist), asyncErrorBoundary(read)],
+  getTheaters: [asyncErrorBoundary(movieIdExist), asyncErrorBoundary(getTheaters)],
+  getReviews: [asyncErrorBoundary(movieIdExist), asyncErrorBoundary(getReviews)]
+  
 };
